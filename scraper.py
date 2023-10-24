@@ -9,131 +9,60 @@ load_dotenv()
 URL = os.environ.get("URL")
 
 
-# Smartphones
-def smartphones_scraper():
-    initial_response = requests.get(f"{URL}/search/Smartphones?page=1")
+# Products scraper
+def products_scraper(
+    section: str,
+    brand_selector: str = ".horizontal-card_name__7qix5",
+    name_selector: str = ".horizontal-card_name__7qix5",
+    price_selector: str = ".horizontal-card_offer__Lq4E6 > span:nth-child(1)",
+    offer_selector: str = ".horizontal-card_offer__Lq4E6 > span:nth-child(2)",
+):
+    initial_response = requests.get(f"{URL}/search/{section}?page=1")
     initial_soup = BeautifulSoup(initial_response.text, "html.parser")
 
-    num_results = int(
+    results = int(
         [
             x.text.split(" ")[0]
             for x in initial_soup.select(".search_content__khPDA > span:nth-child(1)")
         ][0]
     )
-    pages = math.ceil(num_results / 10)
+    pages = math.ceil(results / 10)
 
-    product_brands = []
-    product_names = []
-    product_prices = []
-    product_offers = []
+    brands = []
+    names = []
+    prices = []
+    offers = []
 
     for page in range(1, pages + 1):
-        response = requests.get(f"{URL}/search/Smartphones?page={page}")
+        response = requests.get(f"{URL}/search/{section}?page={page}")
         soup = BeautifulSoup(response.text, "html.parser")
 
-        product_brands.extend(
-            [x.text.split(" ")[0] for x in soup.select(".horizontal-card_name__7qix5")]
+        brands.extend([x.text.split(" ")[0] for x in soup.select(brand_selector)])
+
+        names.extend(
+            [" ".join(x.text.split(" ")[1::]) for x in soup.select(name_selector)]
         )
 
-        product_names.extend(
-            [
-                " ".join(x.text.split(" ")[1::])
-                for x in soup.select(".horizontal-card_name__7qix5")
-            ]
+        prices.extend([float(x.text[2::]) for x in soup.select(price_selector)])
+
+        offers.extend([float(x.text[2::]) for x in soup.select(offer_selector)])
+
+        df = pd.DataFrame(
+            {
+                "Name": names,
+                "Price": prices,
+                "Offer": offers,
+                "Brand": brands,
+            }
         )
 
-        product_prices.extend(
-            [
-                float(x.text[2::])
-                for x in soup.select(
-                    ".horizontal-card_offer__Lq4E6 > span:nth-child(1)"
-                )
-            ]
-        )
+        df.to_csv(f"./data/{section.lower()}.csv", index=False, encoding="utf-8")
 
-        product_offers.extend(
-            [
-                float(x.text[2::])
-                for x in soup.select(
-                    ".horizontal-card_offer__Lq4E6 > span:nth-child(2)"
-                )
-            ]
-        )
 
-    df = pd.DataFrame(
-        {
-            "Name": product_names,
-            "Price": product_prices,
-            "Offer": product_offers,
-            "Brand": product_brands,
-        }
-    )
-
-    df.to_csv("./data/smartphones.csv", index=False, encoding="utf-8")
-
+# Smartphones
+products_scraper(
+    section="Smartphones",
+)
 
 # Laptops
-def laptops_scraper():
-    initial_response = requests.get(f"{URL}/search/Laptops?page=1")
-    initial_soup = BeautifulSoup(initial_response.text, "html.parser")
-
-    num_results = int(
-        [
-            x.text.split(" ")[0]
-            for x in initial_soup.select(".search_content__khPDA > span:nth-child(1)")
-        ][0]
-    )
-    pages = math.ceil(num_results / 10)
-
-    product_brands = []
-    product_names = []
-    product_prices = []
-    product_offers = []
-
-    for page in range(1, pages + 1):
-        response = requests.get(f"{URL}/search/Laptops?page={page}")
-        soup = BeautifulSoup(response.text, "html.parser")
-
-        product_brands.extend(
-            [x.text.split(" ")[0] for x in soup.select(".horizontal-card_name__7qix5")]
-        )
-
-        product_names.extend(
-            [
-                " ".join(x.text.split(" ")[1::])
-                for x in soup.select(".horizontal-card_name__7qix5")
-            ]
-        )
-
-        product_prices.extend(
-            [
-                float(x.text[2::])
-                for x in soup.select(
-                    ".horizontal-card_offer__Lq4E6 > span:nth-child(1)"
-                )
-            ]
-        )
-
-        product_offers.extend(
-            [
-                float(x.text[2::])
-                for x in soup.select(
-                    ".horizontal-card_offer__Lq4E6 > span:nth-child(2)"
-                )
-            ]
-        )
-
-    df = pd.DataFrame(
-        {
-            "Name": product_names,
-            "Price": product_prices,
-            "Offer": product_offers,
-            "Brand": product_brands,
-        }
-    )
-
-    df.to_csv("./data/laptops.csv", index=False, encoding="utf-8")
-
-
-smartphones_scraper()
-laptops_scraper()
+products_scraper(section="Laptops")
