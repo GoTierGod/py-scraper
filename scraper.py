@@ -1,5 +1,5 @@
-from dotenv import load_dotenv
-import os
+# from dotenv import load_dotenv
+# import os
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
@@ -10,14 +10,14 @@ URL = "https://tech-ecommerce-ebon.vercel.app"
 
 # Products scraper
 def products_scraper(
-    section: str,
+    category: str,
     brand_selector: str = ".horizontal-card_name__7qix5",
     name_selector: str = ".horizontal-card_name__7qix5",
     price_selector: str = ".horizontal-card_offer__Lq4E6 > span:nth-child(1)",
     offer_selector: str = ".horizontal-card_offer__Lq4E6 > span:nth-child(2)",
 ):
-    # Search for products of a specific section composing the URL
-    initial_response = requests.get(f"{URL}/search/{section}?page=1")
+    # Search for products of a specific category composing the URL
+    initial_response = requests.get(f"{URL}/search/{category}?page=1")
     initial_soup = BeautifulSoup(initial_response.text, "html.parser")
 
     # Get the number of results for this search
@@ -38,7 +38,7 @@ def products_scraper(
 
     # Iterate through product pages and create a dataframe to export as CSV
     for page in range(1, pages + 1):
-        response = requests.get(f"{URL}/search/{section}?page={page}")
+        response = requests.get(f"{URL}/search/{category}?page={page}")
         soup = BeautifulSoup(response.text, "html.parser")
 
         brands.extend([x.text.split(" ")[0] for x in soup.select(brand_selector)])
@@ -60,13 +60,18 @@ def products_scraper(
             }
         )
 
-        df.to_csv(f"./data/{section.lower()}.csv", index=False, encoding="utf-8")
+        df.to_csv(f"./data/{category.lower()}.csv", index=False, encoding="utf-8")
 
 
-# Smartphones
-products_scraper(
-    section="Smartphones",
-)
+initial_response = requests.get(f"{URL}/")
+initial_soup = BeautifulSoup(initial_response.text, "html.parser")
 
-# Laptops
-products_scraper(section="Laptops")
+categories = [
+    x.text
+    for x in initial_soup.select(
+        ".header_categories__21wx4 > option:not(:first-of-type)"
+    )
+]
+
+for cat in categories:
+    products_scraper(category=cat)
