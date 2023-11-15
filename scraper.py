@@ -5,8 +5,7 @@ from bs4 import BeautifulSoup
 import pandas as pd
 import math
 
-load_dotenv()
-URL = os.environ.get("URL")
+URL = "https://tech-ecommerce-ebon.vercel.app"
 
 
 # Products scraper
@@ -17,22 +16,27 @@ def products_scraper(
     price_selector: str = ".horizontal-card_offer__Lq4E6 > span:nth-child(1)",
     offer_selector: str = ".horizontal-card_offer__Lq4E6 > span:nth-child(2)",
 ):
+    # Search for products of a specific section composing the URL
     initial_response = requests.get(f"{URL}/search/{section}?page=1")
     initial_soup = BeautifulSoup(initial_response.text, "html.parser")
 
+    # Get the number of results for this search
     results = int(
         [
             x.text.split(" ")[0]
             for x in initial_soup.select(".search_content__khPDA > span:nth-child(1)")
         ][0]
     )
+    # Get the number of available pages for this search
     pages = math.ceil(results / 10)
 
+    # Data fields
     brands = []
     names = []
     prices = []
     offers = []
 
+    # Iterate through product pages and create a dataframe to export as CSV
     for page in range(1, pages + 1):
         response = requests.get(f"{URL}/search/{section}?page={page}")
         soup = BeautifulSoup(response.text, "html.parser")
